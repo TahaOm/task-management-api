@@ -122,6 +122,35 @@ services:
       - celery_worker
     restart: unless-stopped
 
+  # Frontend (Next.js) - Uncomment when frontend is ready
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/frontend.Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    container_name: task-frontend
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+  # Nginx Reverse Proxy (add later for production)
+  # nginx:
+  #   build:
+  #     context: ./docker
+  #     dockerfile: nginx.Dockerfile
+  #   container_name: task-nginx
+  #   ports:
+  #     - "80:80"
+  #   depends_on:
+  #     - backend
+  #     - frontend
+  #   restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:
