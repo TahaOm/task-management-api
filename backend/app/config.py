@@ -1,3 +1,4 @@
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 
@@ -20,20 +21,20 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     
     # Database
-    DATABASE_URL: str
+    DATABASE_URL: str | None = None
     
     # Redis
-    REDIS_URL: str
+    REDIS_URL: str | None = None
     
     # Security
-    SECRET_KEY: str
+    SECRET_KEY: str | None = None
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
     # Celery
-    CELERY_BROKER_URL: str
-    CELERY_RESULT_BACKEND: str
+    CELERY_BROKER_URL: str | None = None
+    CELERY_RESULT_BACKEND: str | None = None
     
     # Email
     SENDGRID_API_KEY: Optional[str] = None
@@ -50,6 +51,13 @@ class Settings(BaseSettings):
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = 60
 
+    @model_validator(mode="after")
+    def validate_required(self):
+        if not self.DATABASE_URL:
+            raise ValueError("DATABASE_URL is required")
+        if not self.SECRET_KEY:
+            raise ValueError("SECRET_KEY is required")
+        return self
 
 # Create global settings instance
 settings = Settings()
