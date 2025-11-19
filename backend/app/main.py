@@ -1,6 +1,21 @@
-from fastapi import FastAPI
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 from app.config import settings
+from app.database import get_db
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    print(f"🚀 Starting {settings.PROJECT_NAME} v{settings.VERSION}")
+    yield
+    # Shutdown
+    print("🛑 Shutting down Task Management API")
+
 
 # Create FastAPI application
 app = FastAPI(
@@ -9,6 +24,7 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 # Configure CORS
@@ -38,7 +54,26 @@ async def health_check():
     return {
         "status": "healthy",
         "environment": settings.ENVIRONMENT,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "version": settings.VERSION,
     }
+
+
+@app.get("/health/db")
+async def health_check_db(db: Session = Depends(get_db)):
+    """Database health check with actual query."""
+    try:
+        # Execute a simple query to check database connection
+        result = db.execute(text("SELECT 1"))
+        result.scalar()  # This will raise an exception if DB is down
+
+        return {
+            "database": "connected",
+            "status": "healthy",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Database unavailable: {str(e)}")
 
 
 # TODO: Include API routers here
@@ -47,9 +82,9 @@ async def health_check():
 # app.include_router(users.router, prefix=f"{settings.API_V1_STR}/users", tags=["users"])
 # ... etc
 
-
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
