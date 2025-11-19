@@ -22,11 +22,22 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # pgAdmin for PostgreSQL administration
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8080:80"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
   # Redis Cache & Message Broker
   redis:
-    build:
-      context: ./docker
-      dockerfile: redis.Dockerfile
+    image: redis:7-alpine
     container_name: taskredis
     ports:
       - "6379:6379"
@@ -37,6 +48,14 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
+
+  # RedisInsight for Redis management
+  redis_insight:
+    image: redislabs/redisinsight:latest
+    container_name: redis_insight
+    ports:
+      - "5540:5540/tcp" # ensure TCP is explicitly exposed
     restart: unless-stopped
 
   # Backend API (FastAPI)
@@ -71,7 +90,7 @@ services:
       context: ./backend
       dockerfile: ../docker/backend.Dockerfile
     container_name: task-celery-worker
-    command: celery -A app.tasks.celery_app worker --loglevel=info
+    command: celery -A app.tasks.celery_app.celery worker --loglevel=info
     environment:
       - DATABASE_URL=postgresql://taskuser:taskpass@postgres:5432/taskdb
       - REDIS_URL=redis://redis:6379/0
@@ -91,7 +110,7 @@ services:
       context: ./backend
       dockerfile: ../docker/backend.Dockerfile
     container_name: task-celery-beat
-    command: celery -A app.tasks.celery_app beat --loglevel=info
+    command: celery -A app.tasks.celery_app.celery beat --loglevel=info
     environment:
       - DATABASE_URL=postgresql://taskuser:taskpass@postgres:5432/taskdb
       - REDIS_URL=redis://redis:6379/0
@@ -111,7 +130,7 @@ services:
       context: ./backend
       dockerfile: ../docker/backend.Dockerfile
     container_name: task-flower
-    command: celery -A app.tasks.celery_app flower --port=5555
+    command: celery -A app.tasks.celery_app.celery flower --port=5555
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/1
       - CELERY_RESULT_BACKEND=redis://redis:6379/2
@@ -122,7 +141,7 @@ services:
       - celery_worker
     restart: unless-stopped
 
-  # Frontend (Next.js) - Uncomment when frontend is ready
+  # Frontend (Next.js)
   frontend:
     build:
       context: ./frontend
@@ -138,7 +157,7 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
-  # Nginx Reverse Proxy (add later for production)
+  # Nginx Reverse Proxy (for production, optional)
   # nginx:
   #   build:
   #     context: ./docker

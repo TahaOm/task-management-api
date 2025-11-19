@@ -15,13 +15,13 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.database import engine, Base
-from app.models import User, Project, ProjectMember, Task, Comment, Notification
+from app.models import User  # , Project, ProjectMember, Task, Comment, Notification
 
 
 def init_db():
     """Initialize database by creating all tables."""
     print("🔧 Creating database tables...")
-    
+
     try:
         # Create all tables
         Base.metadata.create_all(bind=engine)
@@ -29,12 +29,12 @@ def init_db():
         print("\nCreated tables:")
         for table_name in Base.metadata.tables.keys():
             print(f"  - {table_name}")
-        
+
         print("\n📝 Next steps:")
         print("  1. Run: uv run alembic revision --autogenerate -m 'Initial migration'")
         print("  2. Run: uv run alembic upgrade head")
         print("  3. (Optional) Run: uv run python scripts/seed_data.py")
-        
+
     except Exception as e:
         print(f"❌ Error creating database tables: {e}")
         sys.exit(1)

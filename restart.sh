@@ -1,20 +1,14 @@
 #!/bin/bash
-
-# Task Management API - Restart Script
-# This script restarts all Docker containers
-
 set -e
 
-echo "🔄 Restarting Task Management API..."
-echo ""
+BLUE='\033[0;34m'
+GREEN='\033[0;32m'
+NC='\033[0m'
 
-# Stop services
+print_status() { echo -e "${BLUE}[INFO]${NC} $1"; }
+print_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
+
+print_status "Restarting all services..."
 ./stop.sh
-
-echo ""
-echo "⏳ Waiting 3 seconds before restart..."
-sleep 3
-echo ""
-
-# Start services
 ./start.sh
+print_success "Services restarted successfully!"
