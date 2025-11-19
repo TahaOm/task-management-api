@@ -51,36 +51,38 @@ until curl -f http://localhost:8000/health > /dev/null 2>&1; do
 done
 print_success "Backend API ready!"
 
-# **FIXED: Run migrations FIRST (before init_db)**
+# Run migrations (always safe)
 print_status "Running database migrations..."
 docker-compose exec -T backend alembic upgrade head
 print_success "Migrations complete!"
 
-# **FIXED: Only run init_db if needed (creates missing tables)**
+# Smart table creation (only if empty)
 print_status "Initializing database tables..."
 docker-compose exec -T backend python scripts/init_db.py
 print_success "Database initialization complete!"
 
-# **OPTIONAL: Only seed if database is empty**
-print_status "Checking if database needs seeding..."
-if docker-compose exec -T backend python -c "
-from app.database import SessionLocal
-from app.models import User
-db = SessionLocal()
-try:
-    if db.query(User).count() == 0:
-        print('EMPTY')
-    else:
-        print('HAS_DATA')
-finally:
-    db.close()
-" | grep -q "EMPTY"; then
-    print_status "Seeding database with demo data..."
-    docker-compose exec -T backend python scripts/seed_data.py
-    print_success "Database seeding complete!"
-else
-    print_success "Database already has data, skipping seeding."
-fi
+# SEEDING COMMENTED OUT - Tables don't exist yet
+# print_status "Checking if database needs seeding..."
+# if docker-compose exec -T backend python -c "
+# from app.database import SessionLocal
+# from app.models import User
+# db = SessionLocal()
+# try:
+#     if db.query(User).count() == 0:
+#         print('EMPTY')
+#     else:
+#         print('HAS_DATA')
+# finally:
+#     db.close()
+# " | grep -q "EMPTY"; then
+#     print_status "Seeding database with demo data..."
+#     docker-compose exec -T backend python scripts/seed_data.py
+#     print_success "Database seeding complete!"
+# else
+#     print_success "Database already has data, skipping seeding."
+# fi
+
+print_warning "📝 Seeding skipped: Create models first, then uncomment seed_data.py"
 
 echo ""
 print_success "🎉 All services ready for development!"
@@ -89,4 +91,10 @@ echo "📊 pgAdmin:   http://localhost:8080"
 echo "🌺 Flower:    http://localhost:5555"
 echo "🗄️  Postgres: localhost:5432"
 echo "🔴 Redis:     localhost:6379"
+echo ""
+echo "🚀 Next steps:"
+echo "   1. Create your database models in app/models/"
+echo "   2. Run: make migration"
+echo "   3. Run: make migrate" 
+echo "   4. Uncomment seeding in start.sh when ready"
 echo ""
