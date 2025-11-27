@@ -6,7 +6,7 @@ from app.models.baseModel import UUIDModel
 from app.models import Comment, Notification, Project, ProjectMember, Task
 
 
-class User(UUIDModel):  # ✅ Now inherits from UUIDModel
+class User(UUIDModel):  # Now inherits from UUIDModel
     """User model for authentication and user management."""
 
     __tablename__ = "users"

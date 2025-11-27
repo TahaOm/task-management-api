@@ -1,43 +1,31 @@
-from sqlalchemy import Column, Text, DateTime, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship
+# app/models/comment.py
+from sqlalchemy import Text, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 import uuid
+from app.models.baseModel import UUIDModel
+from app.models import Task, User
 
-from app.database import Base
 
-
-class Comment(Base):
+class Comment(UUIDModel):  # Inherit from UUIDModel instead of Base
     """Comment model for task discussions."""
 
     __tablename__ = "comments"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    content = Column(Text, nullable=False)
+    # No need for id, created_at, updated_at - they come from UUIDModel
+    content: Mapped[str] = mapped_column(Text, nullable=False)
 
-    task_id = Column(
-        UUID(as_uuid=True),
+    task_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("tasks.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    user_id = Column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
-
-    created_at = Column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
-    updated_at = Column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False,
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
 
     # Relationships
-    task = relationship("Task", back_populates="comments")
-    user = relationship("User", back_populates="comments")
+    task: Mapped["Task"] = relationship("Task", back_populates="comments")
+    user: Mapped["User"] = relationship("User", back_populates="comments")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Comment on Task {self.task_id}>"

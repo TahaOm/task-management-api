@@ -1,62 +1,110 @@
-from pydantic import BaseModel, EmailStr, ConfigDict
-from uuid import UUID
-from datetime import datetime
+from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
 from typing import Optional
+import uuid
+from datetime import datetime
 
 
-# Base schema with common fields
 class UserBase(BaseModel):
-    """Base user schema with common fields."""
+    """Base schema with common user fields."""
 
     email: EmailStr
     full_name: Optional[str] = None
+    avatar_url: Optional[str] = None
 
 
-# Schema for creating a new user
 class UserCreate(UserBase):
-    """Schema for user registration."""
+    """Schema for creating a new user."""
 
-    password: str  # Plain password (will be hashed)
+    password: str
+
+    @field_validator("password")
+    def validate_password(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters long")
+        return v
 
 
-# Schema for updating user
 class UserUpdate(BaseModel):
-    """Schema for updating user profile."""
+    """Schema for updating user information."""
 
     email: Optional[EmailStr] = None
     full_name: Optional[str] = None
     avatar_url: Optional[str] = None
+    password: Optional[str] = None
+
+    @field_validator("password")
+    def validate_password(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and len(v) < 8:
+            raise ValueError("Password must be at least 8 characters long")
+        return v
 
 
-# Schema for password update
-class UserPasswordUpdate(BaseModel):
-    """Schema for changing password."""
-
-    old_password: str
-    new_password: str
-
-
-# Schema for user response (what API returns)
 class UserResponse(UserBase):
-    """Schema for user data returned by API."""
+    """Schema for returning user data (without sensitive information)."""
 
-    id: UUID
-    avatar_url: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
     is_active: bool
     is_superuser: bool
     created_at: datetime
     updated_at: datetime
 
-    model_config = ConfigDict(from_attributes=True)
 
+class UserLogin(BaseModel):
+    """Schema for user login."""
 
-# Schema for user in lists (minimal info)
-class UserSummary(BaseModel):
-    """Minimal user info for lists and references."""
-
-    id: UUID
     email: EmailStr
+    password: str
+
+
+class UserPasswordChange(BaseModel):
+    """Schema for password change."""
+
+    current_password: str
+    new_password: str
+
+    @field_validator("new_password")
+    def validate_new_password(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters long")
+        return v
+
+
+class UserProfileUpdate(BaseModel):
+    """Schema for updating user profile (excludes sensitive fields)."""
+
     full_name: Optional[str] = None
     avatar_url: Optional[str] = None
 
-    model_config = ConfigDict(from_attributes=True)
+
+class Token(BaseModel):
+    """Schema for authentication token response."""
+
+    access_token: str
+    token_type: str
+    expires_in: int
+
+
+class TokenData(BaseModel):
+    """Schema for token payload data."""
+
+    user_id: Optional[uuid.UUID] = None
+
+
+class UserListResponse(BaseModel):
+    """Schema for paginated user list response."""
+
+    items: list[UserResponse]
+    total: int
+    page: int
+    size: int
+    pages: int
+
+
+class UserFilter(BaseModel):
+    """Schema for filtering users in queries."""
+
+    is_active: Optional[bool] = None
+    is_superuser: Optional[bool] = None
+    email: Optional[str] = None
