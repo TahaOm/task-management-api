@@ -1,4 +1,4 @@
-from app.database import Base
+from app.models.baseModel import Base
 
 """
 Database models for the Task Management API.

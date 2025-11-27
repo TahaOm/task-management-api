@@ -2,12 +2,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 from sqlalchemy.orm import DeclarativeBase
 from app.config import settings
 from typing import AsyncGenerator
-
-
-# Base class for all models
-class Base(DeclarativeBase):
-    pass
-
+from app.models import Base
 
 # Create SQLAlchemy engine
 engine = create_async_engine(
@@ -45,3 +40,15 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             yield session
         finally:
             await session.close()
+
+
+async def create_tables():
+    """Create all tables in the database."""
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+
+async def drop_tables():
+    """Drop all tables in the database (for testing)."""
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)

@@ -1,24 +1,16 @@
-from typing import Generic, Type, TypeVar, List, Optional, Any, Dict
+from typing import Generic, TypeVar, List, Optional, Any, Dict
 from fastapi.encoders import jsonable_encoder
+from pydantic import BaseModel
 from sqlalchemy import Integer, and_, select, update, delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from pydantic import BaseModel
-from collections.abc import AsyncGenerator
 
 from backend.app.database import Base
-
-
-class BaseModelWithId(Base):
-    """Base model that includes an id field"""
-
-    __abstract__ = True
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+from backend.app.models.baseModel import UUIDModel
 
 
 # Generic type for SQLAlchemy models
-ModelType = TypeVar("ModelType", bound=BaseModelWithId)
+ModelType = TypeVar("ModelType", bound=UUIDModel)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
 UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
 

@@ -1,54 +1,44 @@
-from sqlalchemy import Boolean, Column, String, DateTime
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship
-import uuid
+# app/models/user.py
+from typing import Optional
+from sqlalchemy import String, Boolean
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from app.models.baseModel import UUIDModel
+from app.models import Comment, Notification, Project, ProjectMember, Task
 
-from app.database import Base
 
-
-class User(Base):
+class User(UUIDModel):  # ✅ Now inherits from UUIDModel
     """User model for authentication and user management."""
 
     __tablename__ = "users"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    email = Column(String(255), unique=True, index=True, nullable=False)
-    hashed_password = Column(String(255), nullable=False)
-    full_name = Column(String(255), nullable=True)
-    avatar_url = Column(String(500), nullable=True)
-    is_active = Column(Boolean, default=True, nullable=False)
-    is_superuser = Column(Boolean, default=False, nullable=False)
-
-    created_at = Column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+    email: Mapped[str] = mapped_column(
+        String(255), unique=True, index=True, nullable=False
     )
-    updated_at = Column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False,
-    )
+    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    full_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    avatar_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_superuser: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Relationships
-    owned_projects = relationship(
+    owned_projects: Mapped[list["Project"]] = relationship(
         "Project", back_populates="owner", foreign_keys="Project.owner_id"
     )
-    project_memberships = relationship(
+    project_memberships: Mapped[list["ProjectMember"]] = relationship(
         "ProjectMember", back_populates="user", cascade="all, delete-orphan"
     )
-    created_tasks = relationship(
+    created_tasks: Mapped[list["Task"]] = relationship(
         "Task", back_populates="creator", foreign_keys="Task.creator_id"
     )
-    assigned_tasks = relationship(
+    assigned_tasks: Mapped[list["Task"]] = relationship(
         "Task", back_populates="assignee", foreign_keys="Task.assignee_id"
     )
-    comments = relationship(
+    comments: Mapped[list["Comment"]] = relationship(
         "Comment", back_populates="user", cascade="all, delete-orphan"
     )
-    notifications = relationship(
+    notifications: Mapped[list["Notification"]] = relationship(
         "Notification", back_populates="user", cascade="all, delete-orphan"
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<User {self.email}>"
