@@ -1,29 +1,47 @@
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.orm import DeclarativeBase
 from app.config import settings
+from typing import AsyncGenerator
 
-# engine = create_engine(
-#     settings.DATABASE_URL,
-#     pool_pre_ping=True,
-#     pool_size=10,
-#     max_overflow=20,
-#     echo=settings.DEBUG,
-# )
 
-engine = create_engine(str(settings.DATABASE_URL))
+# Base class for all models
+class Base(DeclarativeBase):
+    pass
 
-SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine
+
+# Create SQLAlchemy engine
+engine = create_async_engine(
+    str(settings.DATABASE_URL),
+    pool_pre_ping=True,  # Verify connections before using
+    pool_size=10,  # Connection pool size
+    max_overflow=20,  # Max connections beyond pool_size
+    echo=settings.DEBUG,  # Log SQL queries in debug mode
 )
 
-Base = declarative_base()
+# Create AsyncSessionLocal class
+SessionLocal = async_sessionmaker(
+    class_=AsyncSession,
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
+    expire_on_commit=False,
+)
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+
+# Dependency to get database session
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """
+    Dependency function that yields a database session.
+    Automatically closes the session after use.
+
+
+    Usage:
+        @app.get("/items")
+        def read_items(db: Session = Depends(get_db)):
+            return db.query(Item).all()
+    """
+    async with SessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
