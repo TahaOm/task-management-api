@@ -1,4 +1,4 @@
-# app/models/base.py
+# app/db/base.py
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import DateTime, func
 import uuid
@@ -6,8 +6,9 @@ from datetime import datetime
 from typing import Any, Optional
 
 
-# Base class for all models
 class Base(DeclarativeBase):
+    """Base class for all SQLAlchemy models."""
+
     pass
 
 

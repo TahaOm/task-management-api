@@ -1,12 +1,10 @@
 from typing import Generic, TypeVar, List, Optional, Any, Dict
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
-from sqlalchemy import Integer, and_, select, update, delete, func
+from sqlalchemy import and_, select, delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from backend.app.database import Base
-from backend.app.models.baseModel import UUIDModel
+from backend.app.db.base import UUIDModel
 
 
 # Generic type for SQLAlchemy models

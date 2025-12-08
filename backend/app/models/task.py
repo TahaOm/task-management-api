@@ -1,7 +1,7 @@
 from sqlalchemy import String, Text, ForeignKey, Integer, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import uuid
-from app.models.baseModel import UUIDModel
+from backend.app.db.base import UUIDModel
 from app.models import Comment, Project, User
 
 

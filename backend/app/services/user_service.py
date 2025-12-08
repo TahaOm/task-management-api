@@ -7,7 +7,7 @@ from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserFilter, U
 from app.repositories.user import UserRepository
 from app.core.security import get_password_hash, verify_password, create_access_token
 from app.models.user import User
-from app.config import settings
+from backend.app.core.config import settings
 
 
 class UserService:

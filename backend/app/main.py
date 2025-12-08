@@ -1,29 +1,41 @@
+# app/main.py
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import text
-from sqlalchemy.orm import Session
-from app.config import settings
-from app.database import get_db
+from app.core.config import settings
+from app.core.logging import setup_logging
+from app.api.v1 import v1_router  # Single import for all v1 routes
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """
+    Lifespan context manager for startup and shutdown events.
+    """
     # Startup
-    print(f"🚀 Starting {settings.PROJECT_NAME} v{settings.VERSION}")
+    setup_logging()
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.info(f"🚀 Starting {settings.PROJECT_NAME} v{settings.VERSION}")
+    logger.info(f"🌍 Environment: {settings.ENVIRONMENT}")
+    logger.info(f"🔧 Debug mode: {settings.DEBUG}")
+
+    # TODO: Add any startup logic here
     yield
+
     # Shutdown
-    print("🛑 Shutting down Task Management API")
+    logger.info("🛑 Shutting down application")
 
 
 # Create FastAPI application
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    description="A modern task management API with real-time collaboration",
+    openapi_url=f"{settings.API_V1_STR}/openapi.json" if settings.DEBUG else None,
+    docs_url="/docs" if settings.DEBUG else None,
+    redoc_url="/redoc" if settings.DEBUG else None,
     lifespan=lifespan,
 )
 
@@ -34,53 +46,26 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
+# Include the single v1 router (contains all v1 routes)
+app.include_router(v1_router)
 
+
+# Root endpoint
 @app.get("/")
 async def root():
-    """Root endpoint - API health check."""
+    """Root endpoint with API information."""
     return {
-        "message": "Task Management API",
+        "message": f"Welcome to {settings.PROJECT_NAME}",
         "version": settings.VERSION,
         "environment": settings.ENVIRONMENT,
-        "docs": "/docs",
+        "docs": "/docs" if settings.DEBUG else None,
+        "health": f"{settings.API_V1_STR}/health",
+        "api_version": "v1",
     }
 
-
-@app.get("/health")
-async def health_check():
-    """Health check endpoint for monitoring."""
-    return {
-        "status": "healthy",
-        "environment": settings.ENVIRONMENT,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "version": settings.VERSION,
-    }
-
-
-@app.get("/health/db")
-async def health_check_db(db: Session = Depends(get_db)):
-    """Database health check with actual query."""
-    try:
-        # Execute a simple query to check database connection
-        result = db.execute(text("SELECT 1"))
-        result.scalar()  # This will raise an exception if DB is down
-
-        return {
-            "database": "connected",
-            "status": "healthy",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        }
-    except Exception as e:
-        raise HTTPException(status_code=503, detail=f"Database unavailable: {str(e)}")
-
-
-# TODO: Include API routers here
-# from app.api.v1 import auth, users, projects, tasks, comments, notifications, websocket
-# app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
-# app.include_router(users.router, prefix=f"{settings.API_V1_STR}/users", tags=["users"])
-# ... etc
 
 if __name__ == "__main__":
     import uvicorn
@@ -90,4 +75,5 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=8000,
         reload=settings.DEBUG,
+        log_config=None,
     )

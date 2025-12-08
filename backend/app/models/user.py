@@ -2,7 +2,7 @@
 from typing import Optional
 from sqlalchemy import String, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from app.models.baseModel import UUIDModel
+from backend.app.db.base import UUIDModel
 from app.models import Comment, Notification, Project, ProjectMember, Task
 
 
