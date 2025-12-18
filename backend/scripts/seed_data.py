@@ -1,129 +1,135 @@
-# """
-# Database seeding script.
-# Populates database with demo data for development.
-# """
+# scripts/seed_data.py
+"""
+Seed initial data into the database.
+"""
 
-# import sys
-# from pathlib import Path
-# from datetime import datetime, timedelta
+import sys
+from pathlib import Path
+import asyncio
 
-# sys.path.append(str(Path(__file__).resolve().parents[1]))
+sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-# from app.database import SessionLocal
-# from app.models import User, Project, Task, Comment
-# from app.core.security import get_password_hash
+from app.db import SessionLocal
+from app.models.user import User
+from app.core.security import get_password_hash
+import uuid
 
-# def seed_data():
-#     """Seed database with demo data."""
-#     print("🌱 Seeding database with demo data...")
 
-#     db = SessionLocal()
+async def create_superuser():
+    """Create a default superuser."""
+    async with SessionLocal() as session:
+        # Check if superuser already exists
+        from sqlalchemy import select
 
-#     try:
-#         # Check if we already have data
-#         if db.query(User).count() > 0:
-#             print("✅ Database already has data. Skipping seeding.")
-#             return
+        result = await session.execute(
+            select(User).where(User.email == "admin@example.com")
+        )
+        existing_user = result.scalar_one_or_none()
 
-#         # Create demo users
-#         users = [
-#             User(
-#                 email="admin@taskapp.com",
-#                 hashed_password=get_password_hash("admin123"),
-#                 full_name="Admin User",
-#                 is_active=True,
-#                 is_superuser=True
-#             ),
-#             User(
-#                 email="john@taskapp.com",
-#                 hashed_password=get_password_hash("john123"),
-#                 full_name="John Doe",
-#                 is_active=True
-#             ),
-#             User(
-#                 email="sarah@taskapp.com",
-#                 hashed_password=get_password_hash("sarah123"),
-#                 full_name="Sarah Wilson",
-#                 is_active=True
-#             )
-#         ]
+        if existing_user:
+            print("✅ Superuser already exists")
+            return existing_user
 
-#         db.add_all(users)
-#         db.flush()  # Get IDs
+        # Create new superuser
+        superuser = User(
+            email="admin@example.com",
+            hashed_password=get_password_hash("Admin123!"),
+            full_name="System Administrator",
+            is_superuser=True,
+            is_active=True,
+        )
 
-#         # Create projects
-#         projects = [
-#             Project(
-#                 name="Website Redesign",
-#                 description="Complete redesign of company website",
-#                 owner_id=users[0].id
-#             ),
-#             Project(
-#                 name="Mobile App Development",
-#                 description="New task management mobile app",
-#                 owner_id=users[1].id
-#             )
-#         ]
+        session.add(superuser)
+        await session.commit()
+        await session.refresh(superuser)
 
-#         db.add_all(projects)
-#         db.flush()
+        print(f"✅ Superuser created: {superuser.email}")
+        return superuser
 
-#         # Create tasks
-#         tasks = [
-#             Task(
-#                 title="Design Homepage",
-#                 description="Create new homepage layout and design",
-#                 status="in_progress",
-#                 priority="high",
-#                 due_date=datetime.now() + timedelta(days=7),
-#                 project_id=projects[0].id,
-#                 assignee_id=users[1].id,
-#                 creator_id=users[0].id
-#             ),
-#             Task(
-#                 title="API Development",
-#                 description="Build backend API endpoints",
-#                 status="todo",
-#                 priority="medium",
-#                 due_date=datetime.now() + timedelta(days=14),
-#                 project_id=projects[1].id,
-#                 assignee_id=users[2].id,
-#                 creator_id=users[1].id
-#             )
-#         ]
 
-#         db.add_all(tasks)
-#         db.flush()
+async def create_test_users():
+    """Create test users."""
+    async with SessionLocal() as session:
+        test_users = [
+            {
+                "email": "manager@example.com",
+                "password": "Manager123!",
+                "full_name": "Project Manager",
+                "is_superuser": False,
+            },
+            {
+                "email": "developer@example.com",
+                "password": "Developer123!",
+                "full_name": "Software Developer",
+                "is_superuser": False,
+            },
+            {
+                "email": "designer@example.com",
+                "password": "Designer123!",
+                "full_name": "UI/UX Designer",
+                "is_superuser": False,
+            },
+        ]
 
-#         # Create comments
-#         comments = [
-#             Comment(
-#                 content="Let's use a modern color scheme for this",
-#                 task_id=tasks[0].id,
-#                 author_id=users[1].id
-#             ),
-#             Comment(
-#                 content="I'll start working on the backend first",
-#                 task_id=tasks[1].id,
-#                 author_id=users[2].id
-#             )
-#         ]
+        created_users = []
+        for user_data in test_users:
+            # Check if user exists
+            from sqlalchemy import select
 
-#         db.add_all(comments)
-#         db.commit()
+            result = await session.execute(
+                select(User).where(User.email == user_data["email"])
+            )
+            existing_user = result.scalar_one_or_none()
 
-#         print("✅ Demo data seeded successfully!")
-#         print(f"   👥 Users: {len(users)}")
-#         print(f"   📁 Projects: {len(projects)}")
-#         print(f"   ✅ Tasks: {len(tasks)}")
-#         print(f"   💬 Comments: {len(comments)}")
+            if existing_user:
+                print(f"✅ User already exists: {user_data['email']}")
+                created_users.append(existing_user)
+                continue
 
-#     except Exception as e:
-#         db.rollback()
-#         print(f"❌ Error seeding data: {e}")
-#         sys.exit(1)
-#     finally:
-#         db.close()
+            # Create new user
+            user = User(
+                email=user_data["email"],
+                hashed_password=get_password_hash(user_data["password"]),
+                full_name=user_data["full_name"],
+                is_superuser=user_data["is_superuser"],
+                is_active=True,
+            )
 
-# if __name__ == "__main__":
-#     seed_data()
+            session.add(user)
+            created_users.append(user)
+            print(f"✅ User created: {user_data['email']}")
+
+        await session.commit()
+
+        # Refresh all users
+        for user in created_users:
+            await session.refresh(user)
+
+        return created_users
+
+
+async def main():
+    """Main seeding function."""
+    print("🌱 Seeding initial data...")
+
+    try:
+        # Create superuser
+        admin = await create_superuser()
+
+        # Create test users
+        users = await create_test_users()
+
+        print(f"\n🎉 Seeding complete!")
+        print(f"📊 Created {len(users) + 1} users total")
+        print(f"🔑 Admin credentials: admin@example.com / Admin123!")
+
+    except Exception as e:
+        print(f"❌ Error seeding data: {e}")
+        import traceback
+
+        traceback.print_exc()
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
